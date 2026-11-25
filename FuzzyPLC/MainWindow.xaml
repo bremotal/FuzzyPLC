@@ -1,0 +1,1188 @@
+<Window x:Class="FuzzyPLC.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:FuzzyPLC.ViewModels"
+        Title="AE Fuzzy MPC - Automation and Engineering"
+        Height="840" Width="1300" MinHeight="600" MinWidth="900"
+        WindowState="Maximized"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        Background="#2B2B2B">
+    <Window.DataContext><vm:MainViewModel/></Window.DataContext>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <RowDefinition Height="2"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="28"/>
+        </Grid.RowDefinitions>
+
+        <!-- HEADER -->
+        <Border Grid.Row="0" Background="#1E1E1E">
+            <Grid Margin="12,0,16,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" ClipToBounds="True">
+                    <Image Source="Assets/logo_icon.png" Stretch="Uniform"/>
+                </Border>
+                <Border Grid.Column="1" Width="1" Height="30" Background="#4A4A4A" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="2,0,0,0">
+                    <TextBlock Text="FUZZY MPC" Style="{StaticResource HeaderTitle}"/>
+                    <TextBlock Text="Automation and Engineering - Gerador de Linearizadores para PLC" Style="{StaticResource HeaderSub}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button Content="Abrir"          Style="{StaticResource BtnGhost}"   Margin="3,0" Click="BtnLoad_Click"/>
+                    <Button Content="Salvar"         Style="{StaticResource BtnGhost}"   Margin="3,0" Click="BtnSave_Click"/>
+                    <Button Content="+ Nova Variavel" Style="{StaticResource BtnPrimary}" Margin="8,0,4,0" Click="BtnAddVar_Click"/>
+                    <Button Content="CALCULAR MPC"   Style="{StaticResource BtnSuccess}" Margin="4,0" FontSize="13" Padding="18,9" Click="BtnCalculate_Click"/>
+                </StackPanel>
+                <TextBlock Grid.Column="4" Text="{Binding Clock}" FontFamily="Consolas" FontSize="12" Foreground="#666666" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Linha laranja -->
+        <Border Grid.Row="1">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="#E8640C" Offset="0"/>
+                    <GradientStop Color="#C45500" Offset="0.4"/>
+                    <GradientStop Color="#2B2B2B" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <TabControl Grid.Row="2" SelectedIndex="{Binding ActiveTab}">
+
+            <!-- TAB 1 -->
+            <TabItem Header="Configuracao">
+                <Grid Margin="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="300"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource Card}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                                <TextBlock Text="VARIAVEIS DO PROCESSO" Style="{StaticResource SectionTitle}" Margin="0,0,0,4"/>
+                                <TextBlock FontSize="11" Foreground="#777777" TextWrapping="Wrap">Principal = variavel controlada. Auxiliares = influencias MPC.</TextBlock>
+                            </StackPanel>
+                            <ListBox Grid.Row="1" Margin="0,0,0,10" ItemsSource="{Binding Project.Variables}" SelectedItem="{Binding SelectedVar}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="5"/></Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock FontWeight="SemiBold" FontSize="13">
+                                                    <TextBlock.Text><MultiBinding StringFormat="{}{0}  ({1})"><Binding Path="Name"/><Binding Path="Unit"/></MultiBinding></TextBlock.Text>
+                                                </TextBlock>
+                                                <TextBlock FontSize="10" Foreground="#AAAAAA">
+                                                    <TextBlock.Text><MultiBinding StringFormat="{}[{0} - {1}]  Ideal={2}  p={3}"><Binding Path="Min"/><Binding Path="Max"/><Binding Path="Ideal"/><Binding Path="Weight"/></MultiBinding></TextBlock.Text>
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding RoleLabel}" FontSize="10" Foreground="{Binding IsMain, Converter={StaticResource IsMainColor}}"/>
+                                            </StackPanel>
+                                            <Border Grid.Column="1" CornerRadius="2" Background="{Binding IsMain, Converter={StaticResource IsMainColor}}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Grid.Row="2" Orientation="Horizontal">
+                                <Button Content="+ Adicionar" Style="{StaticResource BtnPrimary}" FontSize="11" Padding="10,6" Margin="0,0,6,0" Click="BtnAddVar_Click"/>
+                                <Button Content="Remover"    Style="{StaticResource BtnDanger}"  FontSize="11" Padding="10,6" IsEnabled="{Binding HasSel}" Click="BtnRemoveVar_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <Grid>
+                            <TextBlock Text="Selecione ou adicione uma variavel para editar" Foreground="#777777" FontStyle="Italic"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Visibility="{Binding HasSel, Converter={StaticResource BoolToVisInv}}"/>
+                            <ScrollViewer Visibility="{Binding HasSel, Converter={StaticResource BoolToVis}}" VerticalScrollBarVisibility="Auto">
+                                <StackPanel DataContext="{Binding SelectedVar}" Margin="0,0,16,0">
+                                    <TextBlock Text="EDITAR VARIAVEL" Style="{StaticResource SectionTitle}"/>
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="130"/></Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Nome da Variavel" Style="{StaticResource Label}"/>
+                                            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Unidade" Style="{StaticResource Label}"/>
+                                            <TextBox Text="{Binding Unit, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="FAIXAS DE OPERACAO" Style="{StaticResource SectionTitle}"/>
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0"><TextBlock Text="Minimo" Style="{StaticResource Label}"/><TextBox Text="{Binding Min, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                        <StackPanel Grid.Column="2"><TextBlock Text="Ideal / Setpoint" Style="{StaticResource Label}"/><TextBox Text="{Binding Ideal, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}" Background="#3A2810" BorderBrush="#E8640C"/></StackPanel>
+                                        <StackPanel Grid.Column="4"><TextBlock Text="Maximo" Style="{StaticResource Label}"/><TextBox Text="{Binding Max, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="PARAMETROS FUZZY" Style="{StaticResource SectionTitle}"/>
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="110"/><ColumnDefinition Width="12"/><ColumnDefinition Width="110"/></Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Comportamento Fuzzy" Style="{StaticResource Label}"/>
+                                            <ComboBox ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.Behaviors}"
+                                                      SelectedItem="{Binding Behavior}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Converter={StaticResource BehaviorLabel}}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2"><TextBlock Text="N Pontos" Style="{StaticResource Label}"/><TextBox Text="{Binding NPoints, Converter={StaticResource IntInput}, UpdateSourceTrigger=PropertyChanged}" ToolTip="Numero de pontos do linearizador"/></StackPanel>
+                                        <StackPanel Grid.Column="4"><TextBlock Text="Peso pi (MPC)" Style="{StaticResource Label}"/><TextBox Text="{Binding Weight, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}" Background="#1A2A3A"/></StackPanel>
+                                    </Grid>
+
+                                    <!-- Deadband + Histerese POR VARIÁVEL -->
+                                    <TextBlock Text="ESTABILIDADE DO FATOR FUZZY" Style="{StaticResource SectionTitle}"/>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Zona Morta no SP (% da faixa)" Style="{StaticResource Label}"/>
+                                            <TextBox Text="{Binding Deadband, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"
+                                                     Background="#102010"
+                                                     ToolTip="Faixa em torno do SP onde o fator = 1.0 (sem correção). Ex: 5% em álcool [92,94] = ±0.1°GL"/>
+                                            <TextBlock Text="{Binding DeadbandLabel}" Foreground="#4CAF50"
+                                                       FontSize="10" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Histerese (% da faixa)" Style="{StaticResource Label}"/>
+                                            <TextBox Text="{Binding Hysteresis, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"
+                                                     Background="#102030"
+                                                     ToolTip="Anti-oscilação: só sai da zona morta quando dist > deadband + histerese. Recomendado: 1-3%"/>
+                                            <TextBlock Text="{Binding HystLabel}" Foreground="#2196F3"
+                                                       FontSize="10" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- Aviso: Amp + NL + Escala estão no MPC -->
+                                    <Border Background="#1A1A1A" BorderBrush="#E8640C"
+                                            BorderThickness="1" CornerRadius="4"
+                                            Padding="10,7" Margin="0,0,0,12">
+                                        <TextBlock FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap">
+                                            <Run FontWeight="Bold" Foreground="#E8640C">⚙  Amplificação, Escala Não-Linear e CMD Deadband</Run>
+                                            <Run>estão na aba</Run>
+                                            <Run FontWeight="Bold" Foreground="#E8640C">Parâmetros MPC</Run>
+                                            <Run>— pois agem no controle final do atuador, não por variável.</Run>
+                                        </TextBlock>
+                                    </Border>
+
+                                    <Border Style="{StaticResource SmallCard}" Margin="0,0,0,12">
+                                        <CheckBox Content="Esta e a variavel PRINCIPAL (controlada pelo PLC)" IsChecked="{Binding IsMain}" Click="ChkIsMain_Click"/>
+                                    </Border>
+                                    <TextBlock Text="TEMPO DE RESPOSTA" Style="{StaticResource SectionTitle}"/>
+                                    <Border Style="{StaticResource SmallCard}" Margin="0,0,0,4">
+                                        <StackPanel>
+                                            <CheckBox Content="Habilitar fator de tempo de resposta" IsChecked="{Binding TimeResponse.Enabled}" Margin="0,0,0,10"/>
+                                            <Grid Visibility="{Binding TimeResponse.Enabled, Converter={StaticResource BoolToVis}}">
+                                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0"><TextBlock Text="Tau - Tempo (s)" Style="{StaticResource Label}"/><TextBox Text="{Binding TimeResponse.Value, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                                <StackPanel Grid.Column="2"><TextBlock Text="Intensidade (0.0-1.0)" Style="{StaticResource Label}"/><TextBox Text="{Binding TimeResponse.Intensity, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                                <StackPanel Grid.Column="4">
+                                                    <TextBlock Text="Categoria" Style="{StaticResource Label}"/>
+                                                    <Border Style="{StaticResource AccentCard}" Padding="6,4"><TextBlock Text="{Binding TimeResponse.Category}" Foreground="#E8640C" FontFamily="Consolas" FontSize="11"/></Border>
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                    <Button Content="Definir como variavel PRINCIPAL" Style="{StaticResource BtnWarn}" Margin="0,14,0,0" HorizontalAlignment="Left" Click="BtnSetMain_Click"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ══════════ TAB SETPOINT FUZZY ══════════ -->
+            <TabItem Header="📐  Setpoint Fuzzy">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="14" DataContext="{Binding Project.SetpointFuzzy}">
+
+                        <TextBlock Text="LINEARIZADOR DO SETPOINT FUZZY"
+                                   Style="{StaticResource SectionTitle}" FontSize="13"/>
+
+                        <!-- Explicação modular -->
+                        <Border Background="#1A1A1A" BorderBrush="#4A4A4A"
+                                BorderThickness="1" CornerRadius="5" Padding="12,10"
+                                Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock FontSize="12" Foreground="#E8640C"
+                                           FontWeight="SemiBold" Margin="0,0,0,4">
+                                    ℹ  Totalmente modular — usa os valores da variável principal
+                                </TextBlock>
+                                <TextBlock Foreground="#AAAAAA" FontSize="11"
+                                           TextWrapping="Wrap">
+                                    O Range do Lin_Setpoint é obtido automaticamente do Min/Max
+                                    da variável marcada como PRINCIPAL na aba Configuração.
+                                    Ao trocar a variável principal, o setpoint se atualiza automaticamente.
+                                </TextBlock>
+                                <TextBlock Foreground="#AAAAAA" FontSize="11"
+                                           TextWrapping="Wrap" Margin="0,6,0,0">
+                                    <Run FontWeight="SemiBold" Foreground="#F0F0F0">Para que serve:</Run>
+                                    <Run>quando o SP está próximo dos extremos da faixa, o fator reduz
+                                    a ação do controlador evitando sobreação em condições limite.</Run>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Habilitar/Desabilitar -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <CheckBox Content="Habilitar linearizador Lin_Setpoint"
+                                          IsChecked="{Binding Enabled}"
+                                          FontSize="13" FontWeight="SemiBold"/>
+                                <TextBlock Foreground="#777777" FontSize="11"
+                                           Margin="22,4,0,0" TextWrapping="Wrap">
+                                    Quando desabilitado, o Lin_Setpoint não é gerado.
+                                    Use quando o setpoint é fixo e não precisa de ajuste fuzzy.
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- N° Pontos -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10"
+                                IsEnabled="{Binding Enabled}">
+                            <StackPanel>
+                                <TextBlock Text="RESOLUÇÃO DA CURVA"
+                                           Style="{StaticResource SectionTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="N° Pontos" Style="{StaticResource Label}"/>
+                                        <TextBox Text="{Binding NPoints, Converter={StaticResource IntInput},
+                                                         UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="Número de pontos da tabela (mínimo 4)"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="14,0,0,0"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Foreground="#777777" FontSize="11"
+                                                   TextWrapping="Wrap">
+                                            Range (Min/Max) é definido automaticamente pela
+                                            variável principal. Apenas a resolução é configurável aqui.
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Como funciona -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="COMPORTAMENTO DA CURVA GERADA"
+                                           Style="{StaticResource SectionTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="14"/>
+                                        <ColumnDefinition/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition/><RowDefinition Height="6"/>
+                                        <RowDefinition/><RowDefinition Height="6"/>
+                                        <RowDefinition/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Grid.Row="0" Grid.Column="0" Background="#C45500"
+                                            CornerRadius="3" Padding="8,5">
+                                        <TextBlock Text="SP nos extremos" FontSize="10"
+                                                   Foreground="White" TextWrapping="Wrap"
+                                                   HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <TextBlock Grid.Row="0" Grid.Column="2" VerticalAlignment="Center"
+                                               Foreground="#AAAAAA" FontSize="11">
+                                        Fator = 0.7 → atenua 30% a ação do controlador
+                                    </TextBlock>
+
+                                    <Border Grid.Row="2" Grid.Column="0" Background="#E8640C"
+                                            CornerRadius="3" Padding="8,5">
+                                        <TextBlock Text="SP em transição" FontSize="10"
+                                                   Foreground="White" TextWrapping="Wrap"
+                                                   HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center"
+                                               Foreground="#AAAAAA" FontSize="11">
+                                        Fator = 0.7 a 1.0 → transição gradual
+                                    </TextBlock>
+
+                                    <Border Grid.Row="4" Grid.Column="0" Background="#238636"
+                                            CornerRadius="3" Padding="8,5">
+                                        <TextBlock Text="SP no centro" FontSize="10"
+                                                   Foreground="White" TextWrapping="Wrap"
+                                                   HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <TextBlock Grid.Row="4" Grid.Column="2" VerticalAlignment="Center"
+                                               Foreground="#AAAAAA" FontSize="11">
+                                        Fator = 1.0 → ação normal (sem atenuação)
+                                    </TextBlock>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- TAB 2 -->
+            <TabItem Header="Parametros MPC">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="14" DataContext="{Binding Project.Mpc}">
+                        <TextBlock Text="PARAMETROS MPC" Style="{StaticResource SectionTitle}" FontSize="13"/>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="VARIAVEL DE PROCESSO (PV)" Style="{StaticResource SectionTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0"><TextBlock Text="PV_MIN" Style="{StaticResource Label}"/><TextBox Text="{Binding PvMin, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                    <StackPanel Grid.Column="2"><TextBlock Text="PV_MAX" Style="{StaticResource Label}"/><TextBox Text="{Binding PvMax, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                    <StackPanel Grid.Column="4">
+                                        <TextBlock Text="{Binding SpNominalLabel}" Style="{StaticResource Label}" Foreground="#58A6FF" TextWrapping="Wrap"/>
+                                        <Border Style="{StaticResource SmallCard}" Padding="6,4" Margin="0,2,0,0">
+                                            <StackPanel>
+                                                <CheckBox Content="Definir SP manualmente" IsChecked="{Binding SpEnabled}" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding Sp, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"
+                                                         Background="#3A2810" BorderBrush="#E8640C"
+                                                         Visibility="{Binding SpEnabled, Converter={StaticResource BoolToVis}}"
+                                                         ToolTip="SP manual — use quando o SP real difere do centro do range PV"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="COMANDO / ATUADOR (CMD)" Style="{StaticResource SectionTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0"><TextBlock Text="CMD_MIN" Style="{StaticResource Label}"/><TextBox Text="{Binding CmdMin, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                    <StackPanel Grid.Column="2"><TextBlock Text="CMD_MAX" Style="{StaticResource Label}"/><TextBox Text="{Binding CmdMax, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                    <StackPanel Grid.Column="4">
+                                        <TextBlock Text="{Binding CmdMidLabel}" Style="{StaticResource Label}" Foreground="#58A6FF" TextWrapping="Wrap"/>
+                                        <Border Style="{StaticResource SmallCard}" Padding="6,4" Margin="0,2,0,0">
+                                            <StackPanel>
+                                                <CheckBox Content="Definir CMD_MID manualmente" IsChecked="{Binding CmdMidEnabled}" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding CmdMid, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"
+                                                         Background="#3A2810" BorderBrush="#E8640C"
+                                                         Visibility="{Binding CmdMidEnabled, Converter={StaticResource BoolToVis}}"
+                                                         ToolTip="CMD_MID manual — ponto de equilíbrio do atuador"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="PARAMETROS DA CURVA" Style="{StaticResource SectionTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0"><TextBlock Text="N Pontos" Style="{StaticResource Label}"/><TextBox Text="{Binding NPoints, Converter={StaticResource IntInput}, UpdateSourceTrigger=PropertyChanged}" ToolTip="Numero de pontos da curva MPC"/></StackPanel>
+                                    <StackPanel Grid.Column="2"><TextBlock Text="Alpha (base)" Style="{StaticResource Label}"/><TextBox Text="{Binding Alpha, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                    <StackPanel Grid.Column="4"><TextBlock Text="Tau (base)" Style="{StaticResource Label}"/><TextBox Text="{Binding Tau, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                    <StackPanel Grid.Column="6"><TextBlock Text="K (fator alpha)" Style="{StaticResource Label}"/><TextBox Text="{Binding K, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                </Grid>
+                                <!-- Tipo de Acao — igual ao PID industrial -->
+                                <Border Background="#1E1E1E" BorderBrush="#4A4A4A"
+                                        BorderThickness="1" CornerRadius="5"
+                                        Padding="12,10" Margin="0,14,0,0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="16"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="16"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Label -->
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="TIPO DE ACAO" FontSize="10"
+                                                       FontWeight="SemiBold" Foreground="#AAAAAA"/>
+                                            <TextBlock Text="(igual ao PID industrial)" FontSize="9"
+                                                       Foreground="#666666"/>
+                                        </StackPanel>
+
+                                        <!-- ComboBox de seleção -->
+                                        <ComboBox Grid.Column="2"
+                                                  ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Window},
+                                                                Path=DataContext.ActionTypes}"
+                                                  SelectedItem="{Binding Action}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Converter={StaticResource ActionLabel}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+
+                                        <!-- Indicador visual colorido -->
+                                        <Border Grid.Column="4" CornerRadius="4"
+                                                Padding="10,6" VerticalAlignment="Center"
+                                                Background="{Binding Action, Converter={StaticResource ActionColor}}">
+                                            <TextBlock Text="{Binding ActionLabel}"
+                                                       FontFamily="Consolas" FontSize="11"
+                                                       FontWeight="Bold" Foreground="White"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Explicacao do comportamento -->
+                                <Border Background="#1A1A1A" CornerRadius="4"
+                                        Padding="10,8" Margin="0,6,0,0">
+                                    <StackPanel>
+                                        <TextBlock FontSize="11" FontWeight="Bold"
+                                                   Foreground="#FFC107" Margin="0,0,0,5">
+                                            ⚠  Nomenclatura varia por fabricante — verifique seu PID físico!
+                                        </TextBlock>
+                                        <TextBlock FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap">
+                                            <Run FontWeight="Bold" Foreground="#4CAF50">Direta</Run>
+                                            <Run>: PV↑ → CMD↑  (sem inversão da curva)</Run>
+                                        </TextBlock>
+                                        <TextBlock FontSize="10" Foreground="#666666" TextWrapping="Wrap" Margin="12,1,0,4">
+                                            PV acima do SP → aumenta ação. Ex: álcool alto → mais refluxo, resfriamento.
+                                        </TextBlock>
+                                        <TextBlock FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap">
+                                            <Run FontWeight="Bold" Foreground="#E8640C">Reversa</Run>
+                                            <Run>: PV↑ → CMD↓  (curva espelhada)</Run>
+                                        </TextBlock>
+                                        <TextBlock FontSize="10" Foreground="#666666" TextWrapping="Wrap" Margin="12,1,0,4">
+                                            PV acima do SP → reduz ação. Ex: pH alto → fecha válvula, pressão alta → reduz vapor.
+                                        </TextBlock>
+                                        <TextBlock FontSize="10" Foreground="#444444"
+                                                   TextWrapping="Wrap" Margin="0,4,0,0" FontStyle="Italic">
+                                            Se o comportamento parecer invertido em relação ao seu PID físico,
+                                            troque o tipo — seu fabricante pode usar convenção oposta à ISA.
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- CORREÇÃO DO SP — bias suave para adaptação sem recalcular -->
+                                <TextBlock Text="CORREÇÃO DO SP — Adaptação suave da curva" Style="{StaticResource SectionTitle}"/>
+                                <Border Style="{StaticResource SmallCard}" Margin="0,0,0,4">
+                                    <StackPanel>
+                                        <CheckBox Content="Habilitar correção de SP (bias suave)"
+                                                  IsChecked="{Binding SpCorrEnabled}"
+                                                  Margin="0,0,0,8"
+                                                  ToolTip="Quando SP muda sem recalcular a curva, aplica um offset suave proporcional ao desvio do SP nominal"/>
+
+                                        <!-- Explicação sempre visível -->
+                                        <Border Background="#111111" CornerRadius="4"
+                                                Padding="8,6" Margin="0,0,0,8">
+                                            <StackPanel>
+                                                <TextBlock FontSize="10" Foreground="#AAAAAA" TextWrapping="Wrap">
+                                                    <Run FontWeight="Bold" Foreground="#58A6FF">SP nominal da curva</Run>
+                                                    <Run>= centro do range PV = (PVmin + PVmax) / 2</Run>
+                                                </TextBlock>
+                                                <TextBlock FontSize="10" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,2,0,0">
+                                                    Quando SP atual difere do nominal, um bias é adicionado a todos os pontos da curva.
+                                                    O bias é proporcional ao desvio mas limitado pelo Bias Máx.
+                                                </TextBlock>
+                                                <TextBlock FontSize="10" FontFamily="Consolas"
+                                                           Foreground="#58A6FF" Margin="0,4,0,0"
+                                                           Text="{Binding SpNominal, StringFormat='SP nominal da curva = {0:F3}'}"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Campos só aparecem quando habilitado -->
+                                        <Grid Visibility="{Binding SpCorrEnabled, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="180"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Style="{StaticResource Label}">
+                                                    Ganho (0.0 a 1.0)
+                                                </TextBlock>
+                                                <TextBox Text="{Binding SpGain, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"
+                                                         Background="#1A2A3A"
+                                                         ToolTip="Quanto o bias cresce por unidade de desvio do SP. Recomendado: 0.10 a 0.20 (suave)"/>
+                                                <TextBlock FontSize="10" Margin="0,2,0,0"
+                                                           Foreground="#58A6FF"
+                                                           Text="{Binding SpGain, StringFormat='Ganho: {0:F2}'}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Bias Máx. (% do CMD)" Style="{StaticResource Label}"/>
+                                                <TextBox Text="{Binding SpBiasMax, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"
+                                                         Background="#1A2A3A"
+                                                         ToolTip="Limite máximo do bias em % do range CMD. Ex: 10 = máximo ±10% do range. Recomendado: 5 a 15%"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                                                <Border Background="#1A2A1A" BorderBrush="#238636"
+                                                        BorderThickness="1" CornerRadius="4" Padding="8,6">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Ganhos recomendados:" FontSize="10"
+                                                                   Foreground="#4CAF50" FontWeight="Bold"/>
+                                                        <TextBlock FontSize="10" FontFamily="Consolas" Foreground="#AAAAAA">
+                                                            0.10 = muito suave ✅
+                                                        </TextBlock>
+                                                        <TextBlock FontSize="10" FontFamily="Consolas" Foreground="#AAAAAA">
+                                                            0.20 = suave
+                                                        </TextBlock>
+                                                        <TextBlock FontSize="10" FontFamily="Consolas" Foreground="#FFC107">
+                                                            0.40 = moderado
+                                                        </TextBlock>
+                                                        <TextBlock FontSize="10" FontFamily="Consolas" Foreground="#F44336">
+                                                            0.60+ = agressivo
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Status -->
+                                        <TextBlock Text="{Binding SpCorrLabel}"
+                                                   Foreground="#58A6FF" FontSize="10"
+                                                   Margin="0,6,0,0" FontFamily="Consolas"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ── DEADBAND + HISTERESE DO CMD FINAL ── -->
+                                <TextBlock Text="ESTABILIDADE DO CMD FINAL" Style="{StaticResource SectionTitle}"/>
+                                <Border Style="{StaticResource SmallCard}" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <TextBlock FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,0,0,8">
+                                            Age no CMD final do atuador. Evita micro-ajustes na válvula/motor.
+                                            Independente do deadband por variável (que age no fator fuzzy).
+                                        </TextBlock>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="180"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Zona Morta CMD (% do range)" Style="{StaticResource Label}"/>
+                                                <TextBox Text="{Binding CmdDeadband, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"
+                                                         Background="#102010"
+                                                         ToolTip="% do range CMD. Ex: 2% em [0-100] = atuador não move se CMD variar menos de 1 unidade. Recomendado: 1-3%"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Histerese CMD (% do range)" Style="{StaticResource Label}"/>
+                                                <TextBox Text="{Binding CmdHysteresis, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"
+                                                         Background="#102030"
+                                                         ToolTip="Anti-oscilação do CMD. Só sai da zona morta quando variar > deadband + histerese. Recomendado: 0.5-1.5%"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding CmdDbLabel}"
+                                                           Foreground="#4CAF50" FontSize="10"
+                                                           FontFamily="Consolas" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ── AMPLIFICAÇÃO MÁXIMA ── -->
+                                <TextBlock Text="AMPLIFICAÇÃO DO CMD — Ganho nos extremos" Style="{StaticResource SectionTitle}"/>
+                                <Border Style="{StaticResource SmallCard}" Margin="0,0,0,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="180"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Amplificação Máxima (1.0 a 1.30)" Style="{StaticResource Label}"/>
+                                            <TextBox Text="{Binding MaxAmplification, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}"
+                                                     Background="#3A2010"
+                                                     ToolTip="Ganho máximo do CMD nos extremos. Recomendado: 1.10 (+10%). Faixa segura: 1.05 a 1.15"/>
+                                            <TextBlock Text="{Binding AmpLabel}" Foreground="#E8640C"
+                                                       FontSize="10" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="2" Background="#1A2A1A" BorderBrush="#238636"
+                                                BorderThickness="1" CornerRadius="4" Padding="8,6"
+                                                VerticalAlignment="Center">
+                                            <StackPanel>
+                                                <TextBlock Text="Valores seguros:" FontSize="10" Foreground="#4CAF50" FontWeight="Bold"/>
+                                                <TextBlock FontSize="10" FontFamily="Consolas" Foreground="#AAAAAA">1.05 = +5%  muito suave</TextBlock>
+                                                <TextBlock FontSize="10" FontFamily="Consolas" Foreground="#E8640C">1.10 = +10% ✅ recomendado</TextBlock>
+                                                <TextBlock FontSize="10" FontFamily="Consolas" Foreground="#FFC107">1.15 = +15% limite</TextBlock>
+                                                <TextBlock FontSize="10" FontFamily="Consolas" Foreground="#F44336">1.20+ = risco oscilação</TextBlock>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- ── ESCALA NÃO-LINEAR ── -->
+                                <TextBlock Text="ESCALA NÃO-LINEAR — Fuzzy PID Input Scaling" Style="{StaticResource SectionTitle}"/>
+                                <Border Style="{StaticResource SmallCard}" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <TextBlock FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,0,0,8">
+                                            Expande a faixa crítica na escala interna do PID.
+                                            Ex: álcool [92.7,93.1] ocupa 40% da escala em vez de 20% → PID 2x mais sensível.
+                                        </TextBlock>
+                                        <CheckBox Content="Habilitar re-escala não-linear" IsChecked="{Binding NLEnabled}" Margin="0,0,0,8"/>
+                                        <Grid Visibility="{Binding NLEnabled, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
+                                                <ColumnDefinition/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Crítico Mín." Style="{StaticResource Label}"/>
+                                                <TextBox Text="{Binding NLCritMin, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}" ToolTip="Ex: 92.7"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Crítico Máx." Style="{StaticResource Label}"/>
+                                                <TextBox Text="{Binding NLCritMax, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}" ToolTip="Ex: 93.1"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="4">
+                                                <TextBlock Text="Saída mín. %" Style="{StaticResource Label}"/>
+                                                <TextBox Text="{Binding NLCritLow, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}" Background="#1A2A3A" ToolTip="Ex: 30"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="6">
+                                                <TextBlock Text="Saída máx. %" Style="{StaticResource Label}"/>
+                                                <TextBox Text="{Binding NLCritHigh, Converter={StaticResource DoubleInput}, UpdateSourceTrigger=LostFocus}" Background="#1A2A3A" ToolTip="Ex: 70"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <TextBlock Text="{Binding NLLabel}" Foreground="#E8640C" FontSize="10"
+                                                   Margin="0,6,0,0" FontFamily="Consolas"
+                                                   Visibility="{Binding NLEnabled, Converter={StaticResource BoolToVis}}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <Button Content="CALCULAR MPC AGORA" Style="{StaticResource BtnSuccess}" Margin="0,14,0,0" HorizontalAlignment="Left" Padding="20,10" FontSize="14" Click="BtnCalculate_Click"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- TAB 3 -->
+            <TabItem Header="Resultados MPC">
+                <Grid Margin="14">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource SmallCard}">
+                            <StackPanel><TextBlock Text="SEVERIDADE S" Style="{StaticResource CardTitle}"/>
+                                <TextBlock Text="{Binding Severity, StringFormat=F4}" Style="{StaticResource BigValue}" Foreground="{Binding Severity, Converter={StaticResource SeverityColor}}"/>
+                                <TextBlock Text="S = soma(ui x pi)" Style="{StaticResource Dim}"/></StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource SmallCard}">
+                            <StackPanel><TextBlock Text="tef - TAU EFETIVO" Style="{StaticResource CardTitle}"/>
+                                <TextBlock Text="{Binding TauEf, StringFormat=F4}" Style="{StaticResource BigValue}" Foreground="#FFC107"/>
+                                <TextBlock Text="tef = t x (1 + S)" Style="{StaticResource Dim}"/></StackPanel>
+                        </Border>
+                        <Border Grid.Column="4" Style="{StaticResource SmallCard}">
+                            <StackPanel><TextBlock Text="aef - ALPHA EFETIVO" Style="{StaticResource CardTitle}"/>
+                                <TextBlock Text="{Binding AlphaEf, StringFormat=F4}" Style="{StaticResource BigValue}" Foreground="#E8640C"/>
+                                <TextBlock Text="aef = a / (1 + k x tef)" Style="{StaticResource Dim}"/></StackPanel>
+                        </Border>
+                        <Border Grid.Column="6" Style="{StaticResource SmallCard}">
+                            <StackPanel><TextBlock Text="A - AMPLITUDE" Style="{StaticResource CardTitle}"/>
+                                <TextBlock Text="{Binding Amplitude, StringFormat=F3}" Style="{StaticResource BigValue}" Foreground="#4CAF50"/>
+                                <TextBlock Text="A = (CMDmax - CMDmin) / 2" Style="{StaticResource Dim}"/></StackPanel>
+                        </Border>
+                    </Grid>
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource Card}">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="CURVA MPC - EXPORT PLC" Style="{StaticResource SectionTitle}"/>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding MpcRows}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Pt"  Binding="{Binding Index}"              Width="45"/>
+                                        <DataGridTextColumn Header="PV"  Binding="{Binding Pv,  StringFormat=F3}" Width="*"/>
+                                        <DataGridTextColumn Header="z"   Binding="{Binding Z,   StringFormat=F4}" Width="*"/>
+                                        <DataGridTextColumn Header="CMD" Binding="{Binding Cmd, StringFormat=F3}" Width="*"/>
+                                        <DataGridTemplateColumn Header="Zona" Width="80">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border CornerRadius="3" Padding="4,2" Margin="2" Background="{Binding Zone, Converter={StaticResource ZoneColor}}">
+                                                        <TextBlock Text="{Binding Zone}" FontSize="10" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource Card}">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="PERTINENCIAS ui" Style="{StaticResource SectionTitle}"/>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding AuxRows}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Variavel" Binding="{Binding Name}"                Width="*"/>
+                                        <DataGridTextColumn Header="ui"       Binding="{Binding Mu,   StringFormat=F4}" Width="65"/>
+                                        <DataGridTextColumn Header="x pi"     Binding="{Binding WxMu, StringFormat=F4}" Width="65"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 4 -->
+            <TabItem Header="Linearizadores">
+                <Grid Margin="14">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="210"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Style="{StaticResource Card}">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="LINEARIZADORES" Style="{StaticResource SectionTitle}"/>
+                            <ListBox Grid.Row="1" ItemsSource="{Binding Linearizers}" SelectedItem="{Binding SelectedLin}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,2">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <Border CornerRadius="3" Padding="4,1" Margin="0,0,5,0">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#555555"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding TypeLabel}" Value="PRINCIPAL">
+                                                                    <Setter Property="Background" Value="#C45500"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding TypeLabel}" Value="TEMPO_RESPOSTA">
+                                                                    <Setter Property="Background" Value="#1565C0"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding TypeLabel}" Value="SETPOINT">
+                                                                    <Setter Property="Background" Value="#2E7D32"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding TypeLabel}" Value="AUXILIAR">
+                                                                    <Setter Property="Background" Value="#37474F"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding TypeLabel}" Value="CURVA_MPC">
+                                                                    <Setter Property="Background" Value="#6A1B9A"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding TypeLabel}" FontSize="9"
+                                                               FontWeight="Bold" Foreground="White"/>
+                                                </Border>
+                                                <TextBlock Text="{Binding Count, StringFormat='{}{0} pts'}"
+                                                           FontSize="10" Foreground="#AAAAAA"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="{Binding SelectedLin.Name, StringFormat='Linearizador: {0}'}" Style="{StaticResource SectionTitle}" FontSize="13"/>
+                            <Border Grid.Row="1" Style="{StaticResource AccentCard}" Margin="0,0,0,10">
+                                <TextBlock Text="{Binding SelectedLin.Notes}" FontFamily="Consolas" FontSize="11" Foreground="#E8640C" TextWrapping="Wrap"/>
+                            </Border>
+                            <DataGrid Grid.Row="2" ItemsSource="{Binding LinRows}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Pt"      Binding="{Binding Pt}"                    Width="50"/>
+                                    <DataGridTextColumn Header="Entrada" Binding="{Binding Input,  StringFormat=F3}" Width="*"/>
+                                    <DataGridTextColumn Header="Saida"   Binding="{Binding Output, StringFormat=F3}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 5 -->
+            <TabItem Header="Exportar PLC">
+                <Grid Margin="14">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="EXPORTAR DADOS" Style="{StaticResource SectionTitle}"/>
+                            <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#AAAAAA" Margin="0,0,0,14">Compativel com Siemens, Rockwell e PLCs legados. CSV usa separador ; e decimal , (padrao BR).</TextBlock>
+                            <Button Content="Excel Completo (5 planilhas)" Style="{StaticResource BtnSuccess}" Margin="0,0,0,8" HorizontalAlignment="Stretch" Click="BtnExportExcel_Click"/>
+                            <Button Content="CSV - Curva MPC (PV;CMD)"    Style="{StaticResource BtnPrimary}" Margin="0,0,0,8" HorizontalAlignment="Stretch" Click="BtnExportCsv_Click"/>
+                            <Button Content="Salvar Projeto (JSON)"        Style="{StaticResource BtnGhost}"  Margin="0,0,0,8" HorizontalAlignment="Stretch" Click="BtnSaveAs_Click"/>
+                            <Separator Margin="0,8"/>
+                            <TextBlock Text="PLANILHAS GERADAS:" Style="{StaticResource SectionTitle}"/>
+                            <TextBlock Text="CONFIG"       FontSize="11" Foreground="#AAAAAA" Margin="0,3"/>
+                            <TextBlock Text="CALC_FUZZY"   FontSize="11" Foreground="#AAAAAA" Margin="0,3"/>
+                            <TextBlock Text="Lin_Variavel" FontSize="11" Foreground="#AAAAAA" Margin="0,3"/>
+                            <TextBlock Text="CURVA_FINAL"  FontSize="11" Foreground="#AAAAAA" Margin="0,3"/>
+                            <TextBlock Text="EXPORT_PLC"   FontSize="11" Foreground="#AAAAAA" Margin="0,3"/>
+                            <Separator Margin="0,8"/>
+                            <TextBlock Text="FLUXO (Secao 12):" Style="{StaticResource SectionTitle}"/>
+                            <TextBlock Text="1. Inserir parametros" FontSize="11" Foreground="#4CAF50" Margin="0,2"/>
+                            <TextBlock Text="2. Calcular MPC"       FontSize="11" Foreground="#4CAF50" Margin="0,2"/>
+                            <TextBlock Text="3. Validar curva"      FontSize="11" Foreground="#FFC107" Margin="0,2"/>
+                            <TextBlock Text="4. Exportar CSV"       FontSize="11" Foreground="#E8640C" Margin="0,2"/>
+                            <TextBlock Text="5. Importar no PLC"    FontSize="11" Foreground="#E8640C" Margin="0,2"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="CODIGO IEC 61131-3 - Structured Text (ST)" Style="{StaticResource SectionTitle}"/>
+                            <ListBox Grid.Row="1" ItemsSource="{Binding PlcCode}" FontFamily="Consolas" FontSize="11">
+                                <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="#AAAAAA"/></DataTemplate></ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ══════════ TAB AJUDA ══════════ -->
+            <TabItem Header="❓  Ajuda">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+
+                        <TextBlock Text="GUIA DE REFERÊNCIA — AE FUZZY MPC"
+                                   Style="{StaticResource SectionTitle}" FontSize="15"/>
+                        <TextBlock Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,16">
+                            Referência completa de todos os parâmetros e conceitos do sistema.
+                        </TextBlock>
+
+                        <!-- COMPORTAMENTO FUZZY -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="COMPORTAMENTO FUZZY — Forma da curva de pertinência"
+                                           Style="{StaticResource SectionTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="ÓTIMO" FontWeight="Bold" Foreground="#E8640C"/>
+                                            <TextBlock Text="Problema nos dois lados do SP" FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            <TextBlock Text="Ex: pH — tanto ácido quanto alcalino são ruins. Amplifica abaixo E acima do ideal." FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="DIRETO" FontWeight="Bold" Foreground="#4CAF50"/>
+                                            <TextBlock Text="Problema principalmente ABAIXO do SP" FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            <TextBlock Text="Ex: nível — baixo é perigoso, alto é aceitável. Amplifica quando abaixo." FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="4" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="INVERSO" FontWeight="Bold" Foreground="#2196F3"/>
+                                            <TextBlock Text="Problema principalmente ACIMA do SP" FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            <TextBlock Text="Ex: temperatura — alta é perigosa, baixa é OK. Amplifica quando acima." FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- TIPO DE AÇÃO -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="TIPO DE AÇÃO — Direção do comando final (igual ao PID industrial)"
+                                           Style="{StaticResource SectionTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="REVERSA (padrão)" FontWeight="Bold" Foreground="#E8640C"/>
+                                            <TextBlock Text="PV sobe → CMD desce" FontFamily="Consolas" FontSize="12" Foreground="#F0F0F0" Margin="0,4,0,0"/>
+                                            <TextBlock Text="Mais comum na indústria. pH alto → fecha válvula de ácido. Nível alto → fecha entrada." FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="DIRETA" FontWeight="Bold" Foreground="#4CAF50"/>
+                                            <TextBlock Text="PV sobe → CMD sobe" FontFamily="Consolas" FontSize="12" Foreground="#F0F0F0" Margin="0,4,0,0"/>
+                                            <TextBlock Text="Temperatura alta → abre mais refrigeração. Fluxo baixo → abre mais a válvula de entrada." FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- PARÂMETROS MPC -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="PARÂMETROS MPC — Como ajustar Alpha, Tau e K"
+                                           Style="{StaticResource SectionTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Alpha (α)" FontWeight="Bold" Foreground="#E8640C" FontSize="14"/>
+                                            <TextBlock Text="Agressividade da curva MPC" FontSize="11" Foreground="#AAAAAA" Margin="0,4,0,0"/>
+                                            <TextBlock FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,6,0,0">
+                                                <Run>Baixo (1-2):</Run><Run Foreground="#4CAF50"> curva suave, resposta lenta</Run>
+                                            </TextBlock>
+                                            <TextBlock FontSize="10" Foreground="#777777" TextWrapping="Wrap">
+                                                <Run>Médio (3-4):</Run><Run Foreground="#E8640C"> ✅ recomendado para início</Run>
+                                            </TextBlock>
+                                            <TextBlock FontSize="10" Foreground="#777777" TextWrapping="Wrap">
+                                                <Run>Alto (5+):</Run><Run Foreground="#F44336"> resposta agressiva, risco de oscilação</Run>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Tau (τ)" FontWeight="Bold" Foreground="#FFC107" FontSize="14"/>
+                                            <TextBlock Text="Sensibilidade ao supervisor fuzzy" FontSize="11" Foreground="#AAAAAA" Margin="0,4,0,0"/>
+                                            <TextBlock FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,6,0,0">
+                                                Escala o quanto a severidade S das variáveis auxiliares influencia os parâmetros.
+                                            </TextBlock>
+                                            <TextBlock FontSize="10" Foreground="#E8640C" TextWrapping="Wrap" Margin="0,4,0,0">
+                                                ✅ Comece com τ=1.0. Aumente se quiser que as auxiliares influenciem mais.
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="4" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="K" FontWeight="Bold" Foreground="#2196F3" FontSize="14"/>
+                                            <TextBlock Text="Amortecimento de Alpha" FontSize="11" Foreground="#AAAAAA" Margin="0,4,0,0"/>
+                                            <TextBlock FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,6,0,0">
+                                                αef = α / (1 + K × τef). Quanto maior K, mais α é reduzido quando S é alto.
+                                            </TextBlock>
+                                            <TextBlock FontSize="10" Foreground="#E8640C" TextWrapping="Wrap" Margin="0,4,0,0">
+                                                ✅ Comece com K=0.5. Aumente para suavizar resposta em condições adversas.
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- AMPLIFICAÇÃO E ZONA MORTA -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="AMPLIFICAÇÃO MÁXIMA E ZONA MORTA — Estabilidade no SP"
+                                           Style="{StaticResource SectionTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Amplificação Máxima" FontWeight="Bold" Foreground="#E8640C"/>
+                                            <TextBlock FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,6,0,0">
+                                                Fator máximo quando PV está no extremo da faixa.
+                                            </TextBlock>
+                                            <TextBlock FontSize="11" FontFamily="Consolas" Foreground="#F0F0F0" Margin="0,4,0,2">1.05 = +5%  → muito suave</TextBlock>
+                                            <TextBlock FontSize="11" FontFamily="Consolas" Foreground="#E8640C" Margin="0,2">1.10 = +10% → ✅ recomendado</TextBlock>
+                                            <TextBlock FontSize="11" FontFamily="Consolas" Foreground="#FFC107" Margin="0,2">1.15 = +15% → limite industrial</TextBlock>
+                                            <TextBlock FontSize="11" FontFamily="Consolas" Foreground="#F44336" Margin="0,2">1.20+ = risco de oscilação</TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Zona Morta (Deadband)" FontWeight="Bold" Foreground="#4CAF50"/>
+                                            <TextBlock FontSize="10" Foreground="#777777" TextWrapping="Wrap" Margin="0,6,0,0">
+                                                Faixa em torno do SP onde o fator = 1.0 exato. Evita correções desnecessárias quando PV está próximo do objetivo.
+                                            </TextBlock>
+                                            <TextBlock FontSize="11" FontFamily="Consolas" Foreground="#F0F0F0" Margin="0,6,0,2">0%  = sem zona morta</TextBlock>
+                                            <TextBlock FontSize="11" FontFamily="Consolas" Foreground="#4CAF50" Margin="0,2">5%  = ✅ recomendado</TextBlock>
+                                            <TextBlock FontSize="11" FontFamily="Consolas" Foreground="#FFC107" Margin="0,2">10% = processo muito estável</TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- PESO E SEVERIDADE -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="PESO pᵢ E SEVERIDADE GLOBAL S — Influência das variáveis auxiliares"
+                                           Style="{StaticResource SectionTitle}"/>
+                                <TextBlock Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8">
+                                    O supervisor fuzzy calcula S = Σ(μᵢ × pᵢ) / Σpᵢ, onde μᵢ = |valor - ideal| / (max - min).
+                                    S representa o quanto as condições auxiliares estão fora do ideal.
+                                    S alto → ajusta τef e αef → modifica a curva MPC.
+                                </TextBlock>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Peso pᵢ = 0" FontFamily="Consolas" Foreground="#777777"/>
+                                            <TextBlock Text="Variável ignorada no cálculo de S" FontSize="10" Foreground="#AAAAAA" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Peso pᵢ alto (ex: 1.0)" FontFamily="Consolas" Foreground="#E8640C"/>
+                                            <TextBlock Text="Variável tem mais influência em S. Use para variáveis críticas para o processo." FontSize="10" Foreground="#AAAAAA" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ESCALA NÃO-LINEAR -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="ESCALA NÃO-LINEAR — Fuzzy PID Input Scaling"
+                                           Style="{StaticResource SectionTitle}"/>
+                                <TextBlock Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10">
+                                    Re-escala a entrada do PID dando mais resolução/sensibilidade
+                                    na faixa crítica de operação. A faixa crítica ocupa mais "espaço"
+                                    na escala interna, tornando o PID mais sensível onde importa.
+                                </TextBlock>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Diagrama visual -->
+                                    <Border Grid.Column="0" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Exemplo — Álcool °GL" FontWeight="Bold"
+                                                       Foreground="#E8640C" Margin="0,0,0,6"/>
+                                            <TextBlock FontFamily="Consolas" FontSize="10" Foreground="#F0F0F0">
+                                                Sensor:  [92.0 ─── 92.7 ─ 93.1 ─── 94.0]
+                                            </TextBlock>
+                                            <TextBlock FontFamily="Consolas" FontSize="10" Foreground="#777777">
+                                                Linear:  [ 0%  ─── 35%  ─ 55%  ─── 100%]
+                                            </TextBlock>
+                                            <TextBlock FontFamily="Consolas" FontSize="10" Foreground="#4CAF50" Margin="0,4,0,0">
+                                                NL:      [ 0%  ─── 30%  ─ 70%  ─── 100%]
+                                            </TextBlock>
+                                            <TextBlock FontSize="10" Foreground="#AAAAAA" Margin="0,6,0,0" TextWrapping="Wrap">
+                                                A faixa crítica [92.7, 93.1] ocupa 40% da escala
+                                                em vez de 20% → PID 2× mais sensível nessa região.
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Como configurar -->
+                                    <Border Grid.Column="2" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Como configurar" FontWeight="Bold"
+                                                       Foreground="#4CAF50" Margin="0,0,0,6"/>
+                                            <TextBlock FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap">
+                                                <Run FontWeight="Bold">Crítico Mín/Máx:</Run>
+                                                <Run>valores reais do sensor que delimitam a faixa de operação normal. Ex: 92.7 e 93.1</Run>
+                                            </TextBlock>
+                                            <TextBlock FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,4,0,0">
+                                                <Run FontWeight="Bold">Saída mín/máx %:</Run>
+                                                <Run>posição dessa faixa na escala de saída. Quanto mais afastados de 0% e 100%, maior a expansão.</Run>
+                                            </TextBlock>
+                                            <TextBlock FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,4,0,0">
+                                                <Run FontWeight="Bold">Regra prática:</Run>
+                                                <Run>Saída mín = 20–35% e Saída máx = 65–80% dão boa expansão sem distorção excessiva.</Run>
+                                            </TextBlock>
+                                            <TextBlock FontSize="10" Foreground="#E8640C" TextWrapping="Wrap" Margin="0,6,0,0" FontStyle="Italic">
+                                                O valor re-escalado é usado INTERNAMENTE no cálculo do fator fuzzy.
+                                                A tabela de saída do linearizador já contém os valores corrigidos.
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- CORREÇÃO DO SP -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="CORREÇÃO DO SP — Adaptação suave da curva MPC"
+                                           Style="{StaticResource SectionTitle}"/>
+                                <TextBlock Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10">
+                                    Quando o SP muda sem recalcular a curva MPC, aplica um bias
+                                    (offset) proporcional ao desvio do SP nominal, adaptando
+                                    suavemente a saída sem necessidade de recálculo.
+                                </TextBlock>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Fórmulas" FontWeight="Bold" Foreground="#58A6FF" Margin="0,0,0,6"/>
+                                            <TextBlock FontFamily="Consolas" FontSize="10" Foreground="#F0F0F0" TextWrapping="Wrap">
+                                                SP_nominal = (PVmin + PVmax) / 2
+                                            </TextBlock>
+                                            <TextBlock FontFamily="Consolas" FontSize="10" Foreground="#F0F0F0" TextWrapping="Wrap">
+                                                desvio = SP_atual - SP_nominal
+                                            </TextBlock>
+                                            <TextBlock FontFamily="Consolas" FontSize="10" Foreground="#E8640C" TextWrapping="Wrap" Margin="0,4,0,0">
+                                                bias = desvio × ganho × (CMDrange / PVrange)
+                                            </TextBlock>
+                                            <TextBlock FontFamily="Consolas" FontSize="10" Foreground="#4CAF50" TextWrapping="Wrap">
+                                                CMD = CurvaMPC(PV) + bias
+                                            </TextBlock>
+                                            <TextBlock FontSize="10" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,6,0,0">
+                                                O bias é limitado pelo Bias Máx. configurado,
+                                                evitando correções excessivas.
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource SmallCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Linearizador gerado: Lin_SP_Correcao" FontWeight="Bold"
+                                                       Foreground="#4CAF50" Margin="0,0,0,6"/>
+                                            <TextBlock FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap">
+                                                Quando habilitado, gera automaticamente a tabela
+                                                Lin_SP_Correcao:
+                                            </TextBlock>
+                                            <TextBlock FontFamily="Consolas" FontSize="10" Foreground="#F0F0F0" Margin="0,4,0,0">
+                                                Entrada: valor do SP (PVmin..PVmax)
+                                            </TextBlock>
+                                            <TextBlock FontFamily="Consolas" FontSize="10" Foreground="#F0F0F0">
+                                                Saída: bias CMD a adicionar
+                                            </TextBlock>
+                                            <TextBlock FontFamily="Consolas" FontSize="10" Foreground="#E8640C" Margin="0,4,0,0" TextWrapping="Wrap">
+                                                Uso no PLC:
+                                                CMD = CurvaMPC(PV)
+                                                    + Lin_SP_Correcao(SP)
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- FLUXO DE IMPLEMENTAÇÃO -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="FLUXO DE IMPLEMENTAÇÃO NO PLC — Como usar as tabelas geradas"
+                                           Style="{StaticResource SectionTitle}"/>
+                                <TextBlock FontFamily="Consolas" FontSize="11" Foreground="#F0F0F0"
+                                           TextWrapping="Wrap" LineHeight="20">
+// Opção A — Só a CurvaMPC (mais simples):
+CMD = LINEARIZE(CurvaMPC, PV_principal)
+
+// Opção B — Lin individuais × CurvaMPC (mais controle):
+Fator = Lin_Var1 × Lin_Var2 × Lin_Var3
+CMD   = LINEARIZE(CurvaMPC, PV) × Fator
+
+// Opção C — Média ponderada × CurvaMPC:
+Fator = (p1×Lin1 + p2×Lin2 + p3×Lin3) / (p1+p2+p3)
+CMD   = LINEARIZE(CurvaMPC, PV) × Fator
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- STATUS BAR -->
+        <Border Grid.Row="3" Background="#1E1E1E" BorderBrush="#4A4A4A" BorderThickness="0,1,0,0">
+            <Grid Margin="12,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="7" Height="7" Fill="#E8640C" Margin="0,0,7,0"/>
+                    <TextBlock Text="{Binding Status}" Foreground="#AAAAAA" FontSize="11"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Image Source="Assets/logo_simple.png" Width="16" Height="16" Margin="0,0,6,0" Opacity="0.4"/>
+                    <TextBlock Text="AE Automation and Engineering  |  Fuzzy MPC v2.0" FontSize="10" Foreground="#555555"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

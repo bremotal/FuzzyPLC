@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>FuzzyPLC</AssemblyName>
+    <RootNamespace>FuzzyPLC</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.IO.Compression" Version="4.3.0"/>
+    <PackageReference Include="ClosedXML"      Version="0.102.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3"  />
+  </ItemGroup>
+  <PropertyGroup>
+    <!-- Permite compilar mesmo sem internet se os pacotes já estiverem no cache -->
+    <RestoreIgnoreFailedSources>true</RestoreIgnoreFailedSources>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets\logo_icon.png"/>
+    <Resource Include="Assets\logo_full.png"/>
+    <Resource Include="Assets\logo_simple.png"/>
+  </ItemGroup>
+</Project>

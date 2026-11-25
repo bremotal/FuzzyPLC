@@ -1,0 +1,34 @@
+﻿# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+artifacts/
+TestResults/
+
+# NuGet
+*.nupkg
+.nuget/
+
+# Publish
+publish/
+Properties/PublishProfiles/*.pubxml.user
+
+# Logs
+*.log
+*.tmp
+*.cache
+
+# Windows
+Thumbs.db
+desktop.ini
+.DS_Store
